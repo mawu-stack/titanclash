@@ -447,12 +447,19 @@ export class ServerCombatMatch {
     f.stateDuration = atkData.windup + atkData.activeDuration + atkData.recovery;
     f.hasDealtDamage = false;
 
-    // Lunging forward impulse
+    // Lunging forward impulse with close-range overlap prevention
     const forwardX = Math.sin(f.rotationY);
     const forwardZ = Math.cos(f.rotationY);
-    const lungeImpulse = (attackKey === 'counter') ? 45 : (attackKey === 'heavy' ? 30 : 18);
-    f.vx += forwardX * lungeImpulse;
-    f.vz += forwardZ * lungeImpulse;
+    const lungeImpulse = (attackKey === 'counter') ? 40 : (attackKey === 'heavy' ? 26 : 16);
+    
+    // Check distance to opponent to prevent ramming into their mesh at close range
+    const distToOpp = f.opponent ? Math.hypot(f.opponent.x - f.x, f.opponent.z - f.z) : 999;
+    const minDist = f.hurtboxRadius + (f.opponent ? f.opponent.hurtboxRadius : 16.0) + 8.5;
+    if (distToOpp > minDist) {
+      const maxLunge = Math.min(lungeImpulse, (distToOpp - minDist) * 10.0);
+      f.vx += forwardX * maxLunge;
+      f.vz += forwardZ * maxLunge;
+    }
 
     this.events.push({ type: 'attack_started', slot: f.slot, attackKey, animationType: atkData.animationType });
     return true;
@@ -1371,7 +1378,7 @@ export class ServerCombatMatch {
     const dx = p2.x - p1.x;
     const dz = p2.z - p1.z;
     const dist = Math.hypot(dx, dz);
-    const minDist = p1.hurtboxRadius + p2.hurtboxRadius + 6.5; // 45.5m minimum separation
+    const minDist = p1.hurtboxRadius + p2.hurtboxRadius + 8.5; // 48m minimum separation to avoid mesh overlap
 
     if (dist < minDist && dist > 0.001) {
       const overlap = minDist - dist;
@@ -1474,11 +1481,17 @@ export class ServerCombatMatch {
     this.gameState = 'countdown';
     this.countdownTimer = 3.0;
 
-    // Reposition fighters facing each other
+    // Reposition fighters facing each other and clear transient states
     this.resetFighter(this.p1, -65, 0, Math.PI / 2);
     this.resetFighter(this.p2, 65, 0, -Math.PI / 2);
 
-    this.events.push({ type: 'round_started', round: this.currentRound });
+    this.events.push({
+      type: 'round_started',
+      round: this.currentRound,
+      roundTimer: this.roundDuration,
+      p1Wins: this.p1Wins,
+      p2Wins: this.p2Wins
+    });
   }
 
   endMatch(winnerSlot) {

@@ -258,8 +258,8 @@ export class RoomManager {
     if (room.status !== 'lobby') return;
     if (!room.p1 || !room.p2) return;
 
-    // Both players must be ready and have assets 100% loaded
-    if (room.p1.ready && room.p2.ready && room.p1.assetProgress >= 100 && room.p2.assetProgress >= 100) {
+    // Both players must be ready to start countdown
+    if (room.p1.ready && room.p2.ready) {
       this.startRoomCountdown(room);
     }
   }
@@ -515,6 +515,15 @@ export class RoomManager {
       slot,
       room: this.serializeRoom(room)
     });
+
+    // If room is already in match or countdown, immediately send countdown transition so player leaves lobby view
+    if (room.status === 'countdown' || room.status === 'in_match') {
+      socket.emit(MSG.MATCH_COUNTDOWN, {
+        seconds: 1,
+        p1: { name: room.p1.name, charId: room.p1.charId },
+        p2: { name: room.p2 ? room.p2.name : 'Opponent', charId: room.p2 ? room.p2.charId : 'leatherback' }
+      });
+    }
 
     if (room.match && room.match.gameState === 'paused_disconnect') {
       room.match.resumeAfterReconnect();
