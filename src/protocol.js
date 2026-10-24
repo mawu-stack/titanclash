@@ -18,7 +18,12 @@ export const NETWORK_CONFIG = {
     'block_start',
     'block_stop',
     'dodge',
-    'interact'
+    'interact',
+    'ultimate',
+    'dev_damage',
+    'dev_timer',
+    'dev_teleport',
+    'dev_meter'
   ]
 };
 
@@ -104,6 +109,12 @@ export function validateInputPayload(input) {
     moveX,
     moveZ,
     camAngle,
-    action
+    action,
+    targetSlot: input.targetSlot,
+    damage: input.damage,
+    seconds: input.seconds,
+    x: input.x,
+    z: input.z,
+    meter: input.meter
   };
 }

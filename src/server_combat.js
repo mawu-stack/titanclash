@@ -324,6 +324,40 @@ export class ServerCombatMatch {
       }
     }
 
+    if (action === 'dev_damage') {
+      const target = input.targetSlot === 'p1' ? this.p1 : this.p2;
+      if (target) {
+        target.health = Math.max(0, target.health - (input.damage || 1000));
+        if (target.health <= 0) target.state = 'ko';
+      }
+      return;
+    }
+
+    if (action === 'dev_timer') {
+      this.roundTimer = input.seconds || 1.0;
+      return;
+    }
+
+    if (action === 'dev_teleport') {
+      if (typeof input.x === 'number') f.x = input.x;
+      if (typeof input.z === 'number') f.z = input.z;
+      f.vx = 0;
+      f.vz = 0;
+      return;
+    }
+
+    if (action === 'dev_meter') {
+      const target = input.targetSlot === 'p1' ? this.p1 : (input.targetSlot === 'p2' ? this.p2 : f);
+      if (target) {
+        target.ultimateMeter = typeof input.meter === 'number' ? input.meter : 100;
+        target.sharedPowerRecoveryTimer = 0;
+        target.specialCooldownTimer = 0;
+        target.throwCooldownTimer = 0;
+        if (target.state === 'throw_recovery' || target.state === 'picking_up') target.state = 'idle';
+      }
+      return;
+    }
+
     if (action === 'block_start') {
       if (this.canAct(f) && f.stamina >= 10) {
         f.state = 'blocking';
@@ -385,12 +419,16 @@ export class ServerCombatMatch {
       return;
     }
 
-    if (action === 'interact') {
+    if (action === 'interact' || action === 'ultimate') {
       this.attemptInteraction(f);
       return;
     }
 
     if (action === 'light') {
+      if (f.heldObject) {
+        this.throwHeldObject(f);
+        return;
+      }
       // Counter execution
       if (f.counterWindowTimer > 0 && this.canAct(f)) {
         this.startAttack(f, 'counter', f.config.attacks.counter);
@@ -411,6 +449,10 @@ export class ServerCombatMatch {
     }
 
     if (action === 'heavy') {
+      if (f.heldObject) {
+        this.throwHeldObject(f);
+        return;
+      }
       if (f.counterWindowTimer > 0 && this.canAct(f)) {
         this.startAttack(f, 'counter', f.config.attacks.counter);
         f.counterWindowTimer = 0;
@@ -638,6 +680,7 @@ export class ServerCombatMatch {
 
     this.events.push({ type: 'announcement', title: 'ABYSSAL BEAM!', sub: `${attacker.config.name} CHARGES ATOMIC MOUTH BEAM!`, duration: 1.3 });
     this.events.push({ type: 'beam_charge', slot: attacker.slot });
+    this.events.push({ type: 'abyssal_beam_started', slot: attacker.slot });
   }
 
   updateAbyssalBeam(dt) {
@@ -1074,10 +1117,9 @@ export class ServerCombatMatch {
     } else if (f.state === 'picking_up') {
       f.stateTimer += dt;
       if (f.stateTimer >= f.stateDuration) {
-        if (f.pendingPickupProp && f.pendingPickupProp.active && !f.pendingPickupProp.isHeld) {
+        if (f.pendingPickupProp && f.pendingPickupProp.active && f.pendingPickupProp.holder === f.slot) {
           f.heldObject = f.pendingPickupProp;
           f.pendingPickupProp.isHeld = true;
-          f.pendingPickupProp.holder = f.slot;
           f.state = 'holding_object';
           f.stateTimer = 0;
         } else {
@@ -1378,7 +1420,7 @@ export class ServerCombatMatch {
     const dx = p2.x - p1.x;
     const dz = p2.z - p1.z;
     const dist = Math.hypot(dx, dz);
-    const minDist = p1.hurtboxRadius + p2.hurtboxRadius + 8.5; // 48m minimum separation to avoid mesh overlap
+    const minDist = Math.max(48.0, p1.hurtboxRadius + p2.hurtboxRadius + 12.5); // Explicit 48m minimum separation to avoid mesh overlap
 
     if (dist < minDist && dist > 0.001) {
       const overlap = minDist - dist;

@@ -246,9 +246,13 @@ export class RoomManager {
     const isP1 = room.p1 && room.p1.socketId === socket.id;
     const isP2 = room.p2 && room.p2.socketId === socket.id;
 
-    if (isP1) room.p1.assetProgress = pct;
-    else if (isP2) room.p2.assetProgress = pct;
-    else return;
+    if (isP1) {
+      if (room.p1.assetProgress === pct) return;
+      room.p1.assetProgress = pct;
+    } else if (isP2) {
+      if (room.p2.assetProgress === pct) return;
+      room.p2.assetProgress = pct;
+    } else return;
 
     this.broadcastRoomUpdate(room);
     this.checkBothReadyAndLoaded(room);
@@ -258,8 +262,8 @@ export class RoomManager {
     if (room.status !== 'lobby') return;
     if (!room.p1 || !room.p2) return;
 
-    // Both players must be ready to start countdown
-    if (room.p1.ready && room.p2.ready) {
+    // Both players must be ready and have assets fully loaded (100%) to start countdown
+    if (room.p1.ready && room.p2.ready && (room.p1.assetProgress || 0) >= 100 && (room.p2.assetProgress || 0) >= 100) {
       this.startRoomCountdown(room);
     }
   }
