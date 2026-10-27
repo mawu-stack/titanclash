@@ -19,11 +19,7 @@ export const NETWORK_CONFIG = {
     'block_stop',
     'dodge',
     'interact',
-    'ultimate',
-    'dev_damage',
-    'dev_timer',
-    'dev_teleport',
-    'dev_meter'
+    'ultimate'
   ]
 };
 
@@ -94,7 +90,7 @@ export function validateInputPayload(input) {
     moveZ /= len;
   }
 
-  // Action validation
+  // Action validation - strictly enforce production allowlist
   let action = null;
   if (typeof input.action === 'string' && NETWORK_CONFIG.ALLOWED_ACTIONS.includes(input.action)) {
     action = input.action;
@@ -109,12 +105,6 @@ export function validateInputPayload(input) {
     moveX,
     moveZ,
     camAngle,
-    action,
-    targetSlot: input.targetSlot,
-    damage: input.damage,
-    seconds: input.seconds,
-    x: input.x,
-    z: input.z,
-    meter: input.meter
+    action
   };
 }

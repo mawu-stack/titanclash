@@ -324,37 +324,8 @@ export class ServerCombatMatch {
       }
     }
 
-    if (action === 'dev_damage') {
-      const target = input.targetSlot === 'p1' ? this.p1 : this.p2;
-      if (target) {
-        target.health = Math.max(0, target.health - (input.damage || 1000));
-        if (target.health <= 0) target.state = 'ko';
-      }
-      return;
-    }
-
-    if (action === 'dev_timer') {
-      this.roundTimer = input.seconds || 1.0;
-      return;
-    }
-
-    if (action === 'dev_teleport') {
-      if (typeof input.x === 'number') f.x = input.x;
-      if (typeof input.z === 'number') f.z = input.z;
-      f.vx = 0;
-      f.vz = 0;
-      return;
-    }
-
-    if (action === 'dev_meter') {
-      const target = input.targetSlot === 'p1' ? this.p1 : (input.targetSlot === 'p2' ? this.p2 : f);
-      if (target) {
-        target.ultimateMeter = typeof input.meter === 'number' ? input.meter : 100;
-        target.sharedPowerRecoveryTimer = 0;
-        target.specialCooldownTimer = 0;
-        target.throwCooldownTimer = 0;
-        if (target.state === 'throw_recovery' || target.state === 'picking_up') target.state = 'idle';
-      }
+    // Strictly reject dev shortcuts or unauthorized actions on authoritative server
+    if (action && (action.startsWith('dev_') || action.startsWith('debug_'))) {
       return;
     }
 
@@ -1420,7 +1391,7 @@ export class ServerCombatMatch {
     const dx = p2.x - p1.x;
     const dz = p2.z - p1.z;
     const dist = Math.hypot(dx, dz);
-    const minDist = Math.max(48.0, p1.hurtboxRadius + p2.hurtboxRadius + 12.5); // Explicit 48m minimum separation to avoid mesh overlap
+    const minDist = 48.0; // Enforced 48m minimum separation to avoid mesh overlap while allowing attacks to connect
 
     if (dist < minDist && dist > 0.001) {
       const overlap = minDist - dist;
