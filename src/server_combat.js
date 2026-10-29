@@ -14,7 +14,8 @@ export class ServerCombatMatch {
     this.gameState = 'countdown'; // 'countdown' | 'fighting' | 'finisher_cinematic' | 'abyssal_beam' | 'reactor_overdrive' | 'round_over' | 'match_over' | 'paused_disconnect'
     this.previousStateBeforeDisconnect = null;
     this.countdownTimer = 3.0;
-    this.roundDuration = Number(process.env.ROUND_DURATION) || 90.0;
+    const parsedDuration = Number(process.env.ROUND_DURATION);
+    this.roundDuration = (Number.isFinite(parsedDuration) && parsedDuration > 0) ? parsedDuration : 90.0;
     this.roundTimer = this.roundDuration;
     this.currentRound = 1;
     this.p1Wins = 0;
