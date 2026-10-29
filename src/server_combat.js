@@ -1543,6 +1543,7 @@ export class ServerCombatMatch {
     return {
       tick: this.tick,
       gameState: this.gameState,
+      roundDuration: this.roundDuration,
       roundTimer: this.roundTimer,
       countdownTimer: this.countdownTimer,
       currentRound: this.currentRound,
